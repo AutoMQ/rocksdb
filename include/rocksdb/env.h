@@ -672,7 +672,6 @@ class Env : public Customizable {
     this->cpu_set_.swap(cpu_set);
   }
 
-
  protected:
   // The pointer to an internal structure that will update the
   // status of each thread.
@@ -683,7 +682,7 @@ class Env : public Customizable {
 
   // Pointer to the underlying SystemClock implementation
   std::shared_ptr<SystemClock> system_clock_;
-  
+
   std::vector<int> cpu_set_;
 
  private:

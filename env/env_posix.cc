@@ -15,7 +15,6 @@
 
 #include <cassert>
 
-
 #include "port/lang.h"
 #if !defined(OS_WIN)
 
@@ -370,9 +369,9 @@ class PosixEnv : public CompositeEnv {
     return Status::OK();
   }
   void SetCpuSet(std::vector<int> cpu_set) override {
-    printf("env_posix.cc: SetCpuSet, size = %d\n", cpu_set.size());
-    for(int i = 0; i < cpu_set.size(); i++) {
-      printf("env_posix.cc: cpu_set[%d]: %d\n", i, cpu_set[i]);
+    printf("env_posix.cc: SetCpuSet, size = %ld\n", cpu_set.size());
+    for (std::vector<int>::size_type i = 0; i < cpu_set.size(); i++) {
+      printf("env_posix.cc: cpu_set[%ld]: %d\n", i, cpu_set[i]);
     }
 #ifdef _GNU_SOURCE
     for (int processor_id : cpu_set) {

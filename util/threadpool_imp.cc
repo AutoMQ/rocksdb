@@ -125,9 +125,9 @@ struct ThreadPoolImpl::Impl {
     return released_threads_in_success;
   }
 
-  #ifdef _GNU_SOURCE
-    void SetCpuSet(cpu_set_t* cpu_set) { cpu_set_ = cpu_set; }
-  #endif
+#ifdef _GNU_SOURCE
+  void SetCpuSet(cpu_set_t* cpu_set) { cpu_set_ = cpu_set; }
+#endif
 
  private:
   static void BGThreadWrapper(void* arg);

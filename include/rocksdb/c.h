@@ -2096,8 +2096,9 @@ extern ROCKSDB_LIBRARY_API void rocksdb_envoptions_destroy(
 extern ROCKSDB_LIBRARY_API void rocksdb_create_dir_if_missing(
     rocksdb_env_t* env, const char* path, char** errptr);
 
-extern ROCKSDB_LIBRARY_API void rocksdb_env_set_cpu_set(
-    rocksdb_env_t* env, const int* cpu_set, size_t n);
+extern ROCKSDB_LIBRARY_API void rocksdb_env_set_cpu_set(rocksdb_env_t* env,
+                                                        const int* cpu_set,
+                                                        size_t n);
 
 /* SstFile */
 
@@ -2245,7 +2246,8 @@ extern ROCKSDB_LIBRARY_API rocksdb_fifo_compaction_options_t*
 rocksdb_fifo_compaction_options_create(void);
 extern ROCKSDB_LIBRARY_API void
 rocksdb_fifo_compaction_options_set_allow_compaction(
-    rocksdb_fifo_compaction_options_t* fifo_opts, unsigned char allow_compaction);
+    rocksdb_fifo_compaction_options_t* fifo_opts,
+    unsigned char allow_compaction);
 extern ROCKSDB_LIBRARY_API unsigned char
 rocksdb_fifo_compaction_options_get_allow_compaction(
     rocksdb_fifo_compaction_options_t* fifo_opts);

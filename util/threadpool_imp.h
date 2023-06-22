@@ -14,6 +14,10 @@
 #include "rocksdb/env.h"
 #include "rocksdb/threadpool.h"
 
+#ifdef _GNU_SOURCE
+#include <pthread.h>
+#endif
+
 namespace ROCKSDB_NAMESPACE {
 
 class ThreadPoolImpl : public ThreadPool {
@@ -97,6 +101,9 @@ class ThreadPoolImpl : public ThreadPool {
   int ReleaseThreads(int threads_to_be_released) override;
 
   static void PthreadCall(const char* label, int result);
+#ifdef _GNU_SOURCE
+  void SetCpuSet(cpu_set_t* cpu_set);
+#endif
 
   struct Impl;
 

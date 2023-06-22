@@ -666,6 +666,12 @@ class Env : public Customizable {
   const std::shared_ptr<SystemClock>& GetSystemClock() const;
 
   // If you're adding methods here, remember to add them to EnvWrapper too.
+  // Get/Set CPU-set, on which RocksDB threads are allowed to schedule.
+  virtual const std::vector<int>& GetCpuSet() const { return cpu_set_; }
+  virtual void SetCpuSet(std::vector<int> cpu_set) {
+    this->cpu_set_.swap(cpu_set);
+  }
+
 
  protected:
   // The pointer to an internal structure that will update the
@@ -677,6 +683,8 @@ class Env : public Customizable {
 
   // Pointer to the underlying SystemClock implementation
   std::shared_ptr<SystemClock> system_clock_;
+  
+  std::vector<int> cpu_set_;
 
  private:
   static const size_t kMaxHostNameLen = 256;
@@ -1676,6 +1684,13 @@ class EnvWrapper : public Env {
   Status PrepareOptions(const ConfigOptions& options) override;
   std::string SerializeOptions(const ConfigOptions& config_options,
                                const std::string& header) const override;
+  const std::vector<int>& GetCpuSet() const override {
+    return target_.env->GetCpuSet();
+  }
+  void SetCpuSet(std::vector<int> cpu_set) override {
+    // target_-> ->SetCpuSet(cpu_set);
+    target_.env->SetCpuSet(cpu_set);
+  }
 
  private:
   Target target_;

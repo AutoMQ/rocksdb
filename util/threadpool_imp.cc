@@ -34,6 +34,10 @@
 #include "test_util/sync_point.h"
 #include "util/string_util.h"
 
+#ifdef _GNU_SOURCE
+#include <pthread.h>
+#endif
+
 namespace ROCKSDB_NAMESPACE {
 
 void ThreadPoolImpl::PthreadCall(const char* label, int result) {
@@ -121,6 +125,10 @@ struct ThreadPoolImpl::Impl {
     return released_threads_in_success;
   }
 
+  #ifdef _GNU_SOURCE
+    void SetCpuSet(cpu_set_t* cpu_set) { cpu_set_ = cpu_set; }
+  #endif
+
  private:
   static void BGThreadWrapper(void* arg);
 
@@ -157,6 +165,10 @@ struct ThreadPoolImpl::Impl {
   std::mutex mu_;
   std::condition_variable bgsignal_;
   std::vector<port::Thread> bgthreads_;
+
+#ifdef _GNU_SOURCE
+  cpu_set_t* cpu_set_;
+#endif
 };
 
 inline ThreadPoolImpl::Impl::Impl()
@@ -381,7 +393,11 @@ void ThreadPoolImpl::Impl::StartBGThreads() {
   while ((int)bgthreads_.size() < total_threads_limit_) {
     port::Thread p_t(&BGThreadWrapper,
                      new BGThreadMetadata(this, bgthreads_.size()));
-
+#ifdef _GNU_SOURCE
+    if (CPU_COUNT(cpu_set_)) {
+      pthread_setaffinity_np(p_t.native_handle(), sizeof(*cpu_set_), cpu_set_);
+    }
+#endif
 // Set the thread name to aid debugging
 #if defined(_GNU_SOURCE) && defined(__GLIBC_PREREQ)
 #if __GLIBC_PREREQ(2, 12)
@@ -530,7 +546,11 @@ Env::Priority ThreadPoolImpl::GetThreadPriority() const {
 void ThreadPoolImpl::SetThreadPriority(Env::Priority priority) {
   impl_->SetThreadPriority(priority);
 }
-
+#ifdef _GNU_SOURCE
+void ThreadPoolImpl::SetCpuSet(cpu_set_t* cpu_set) {
+  impl_->SetCpuSet(cpu_set);
+}
+#endif
 // Reserve a specific number of threads, prevent them from running other
 // functions The number of reserved threads could be fewer than the desired one
 int ThreadPoolImpl::ReserveThreads(int threads_to_be_reserved) {

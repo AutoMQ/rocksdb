@@ -4859,6 +4859,11 @@ void rocksdb_create_dir_if_missing(rocksdb_env_t* env, const char* path,
   SaveError(errptr, env->rep->CreateDirIfMissing(std::string(path)));
 }
 
+void rocksdb_env_set_cpu_set(rocksdb_env_t* env, const int* cpu_set, size_t n) {
+  std::vector<int> vec(cpu_set, cpu_set + n);
+  env->rep->SetCpuSet(vec);
+}
+
 rocksdb_sstfilewriter_t* rocksdb_sstfilewriter_create_with_comparator(
     const rocksdb_envoptions_t* env, const rocksdb_options_t* io_options,
     const rocksdb_comparator_t* /*comparator*/) {

@@ -3,7 +3,7 @@ name: Data Node Release
 on:
   push:
     tags:
-      - 'rocksdb-v[0-9]+.[0-9]+.[0-9]+'
+      - 'rocksdb-v[0-9]+.[0-9]+.[0-9]+b[0-9]+'
 
 permissions:
   contents: write

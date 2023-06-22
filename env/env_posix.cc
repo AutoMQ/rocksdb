@@ -7,6 +7,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors
 
+#include <sched.h>
+#ifdef _GNU_SOURCE
+#include <pthread.h>
+#include <stdio.h>
+#endif
+
+#include <cassert>
+
+
 #include "port/lang.h"
 #if !defined(OS_WIN)
 
@@ -362,7 +371,23 @@ class PosixEnv : public CompositeEnv {
     allow_non_owner_access_ = allow_non_owner_access;
     return Status::OK();
   }
-
+  void SetCpuSet(std::vector<int> cpu_set) override {
+    printf("env_posix.cc: SetCpuSet, size = %d\n", cpu_set.size());
+    for(int i = 0; i < cpu_set.size(); i++) {
+      printf("env_posix.cc: cpu_set[%d]: %d\n", i, cpu_set[i]);
+    }
+#ifdef _GNU_SOURCE
+    for (int processor_id : cpu_set) {
+      assert((unsigned int)processor_id < std::thread::hardware_concurrency());
+      // Skip if the processor has already set.
+      if (CPU_ISSET(processor_id, &posix_cpu_set_)) {
+        continue;
+      }
+      CPU_SET(processor_id, &posix_cpu_set_);
+    }
+#endif
+    CompositeEnv::SetCpuSet(cpu_set);
+  }
   // Allow increasing the number of worker threads.
   void IncBackgroundThreadsIfNeeded(int num, Priority pri) override {
     assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
@@ -402,6 +427,9 @@ class PosixEnv : public CompositeEnv {
   std::vector<pthread_t> threads_to_join_storage_;
   bool allow_non_owner_access_storage_;
 
+#ifdef _GNU_SOURCE
+  cpu_set_t posix_cpu_set_;
+#endif
   std::vector<ThreadPoolImpl>& thread_pools_;
   pthread_mutex_t& mu_;
   std::vector<pthread_t>& threads_to_join_;
@@ -418,12 +446,19 @@ PosixEnv::PosixEnv()
       mu_(mu_storage_),
       threads_to_join_(threads_to_join_storage_),
       allow_non_owner_access_(allow_non_owner_access_storage_) {
+#ifdef _GNU_SOURCE
+  CPU_ZERO(&posix_cpu_set_);
+#endif
   ThreadPoolImpl::PthreadCall("mutex_init", pthread_mutex_init(&mu_, nullptr));
   for (int pool_id = 0; pool_id < Env::Priority::TOTAL; ++pool_id) {
     thread_pools_[pool_id].SetThreadPriority(
         static_cast<Env::Priority>(pool_id));
     // This allows later initializing the thread-local-env of each thread.
     thread_pools_[pool_id].SetHostEnv(this);
+#ifdef _GNU_SOURCE
+    // Specify thread affinity
+    thread_pools_[pool_id].SetCpuSet(&posix_cpu_set_);
+#endif
   }
   thread_status_updater_ = CreateThreadStatusUpdater();
 }
@@ -456,10 +491,19 @@ int PosixEnv::ReleaseThreads(int threads_to_released, Priority pri) {
 struct StartThreadState {
   void (*user_function)(void*);
   void* arg;
+#ifdef _GNU_SOURCE
+  cpu_set_t* cpu_set;
+#endif
 };
 
 static void* StartThreadWrapper(void* arg) {
   StartThreadState* state = reinterpret_cast<StartThreadState*>(arg);
+#ifdef _GNU_SOURCE
+  if (CPU_COUNT(state->cpu_set)) {
+    pthread_setaffinity_np(pthread_self(), sizeof(*state->cpu_set),
+                           state->cpu_set);
+  }
+#endif
   state->user_function(state->arg);
   delete state;
   return nullptr;
@@ -470,6 +514,10 @@ void PosixEnv::StartThread(void (*function)(void* arg), void* arg) {
   StartThreadState* state = new StartThreadState;
   state->user_function = function;
   state->arg = arg;
+#ifdef _GNU_SOURCE
+  // Specify thread affinity
+  state->cpu_set = &posix_cpu_set_;
+#endif
   ThreadPoolImpl::PthreadCall(
       "start thread", pthread_create(&t, nullptr, &StartThreadWrapper, state));
   ThreadPoolImpl::PthreadCall("lock", pthread_mutex_lock(&mu_));

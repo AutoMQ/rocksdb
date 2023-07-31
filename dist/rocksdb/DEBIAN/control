@@ -1,5 +1,5 @@
 Package: rocksdb
-Version: 8.1.1
+Version: 8.3.2
 Maintainer: Li Zhanhui
 Architecture: amd64
 Description: Pre-built RocksDB
